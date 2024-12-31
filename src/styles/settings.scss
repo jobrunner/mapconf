@@ -1,0 +1,9 @@
+@use 'vuetify/settings' with (
+  $label-color: lightgray,
+  $label-font-size: 0.8rem,
+  $slider-horizontal-end: 0px,
+  $slider-horizontal-start: 0px,
+  $slider-horizontal-min-height: calc(16px + 32px),
+  $slider-label-margin-end: 4px,
+  $slider-label-margin-start: 0px
+);

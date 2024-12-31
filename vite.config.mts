@@ -15,7 +15,11 @@ export default defineConfig({
       template: { transformAssetUrls },
     }),
     // https://github.com/vuetifyjs/vuetify-loader/tree/master/packages/vite-plugin#readme
-    Vuetify(),
+    Vuetify({
+      styles: {
+        configFile: 'src/styles/settings.scss',
+      },
+    }),
     Components(),
     ViteFonts({
       google: {
@@ -48,6 +52,15 @@ export default defineConfig({
     preprocessorOptions: {
       sass: {
         api: 'modern-compiler',
+      },
+    },
+  },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          d3: ['d3-composite-projections', 'd3-geo-projection'],
+        },
       },
     },
   },
