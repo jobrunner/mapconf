@@ -1,81 +1,87 @@
-# Vuetify (Default)
+# mapconf — Map Projection Configurator
 
-This is the official scaffolding tool for Vuetify, designed to give you a head start in building your new Vuetify application. It sets up a base template with all the necessary configurations and standard directory structure, enabling you to begin development without the hassle of setting up the project from scratch.
+An interactive web tool for exploring [D3](https://d3js.org/) geographic map
+projections. Pick a projection, adjust its parameters, and watch a world map
+re-render live — alongside the equivalent D3 code snippet.
 
-## ❗️ Important Links
+## What it does
 
-- 📄 [Docs](https://vuetifyjs.com/)
-- 🚨 [Issues](https://issues.vuetifyjs.com/)
-- 🏬 [Store](https://store.vuetifyjs.com/)
-- 🎮 [Playground](https://play.vuetifyjs.com/)
-- 💬 [Discord](https://community.vuetifyjs.com)
+- Renders a world map as SVG for a selectable projection.
+- Lets you tune the projection interactively:
+  - **central meridian & parallel** (`center`)
+  - **rotation** as Euler angles λ / φ / γ (`rotate`)
+  - **translation**, **scale**, and **viewport** size
+  - projection-specific parameters such as **parallel** (for cylindrical
+    equal-area)
+- Overlays that make distortion visible: a graticule (10° grid), a set of
+  distortion-indicator circles, and a marker at the projected center.
+- **Pan & zoom directly on the map** — drag to translate, scroll to zoom.
+- Shows a **live D3 code snippet** for the current configuration.
 
-## 💿 Install
+Each projection only exposes the controls (and code methods) it actually
+supports, and switching projection **auto-fits** the map to the viewport so
+every projection starts at a sensible size.
 
-Set up your project using your preferred package manager. Use the corresponding command to install the dependencies:
+### Projections
 
-| Package Manager                                                | Command        |
-|---------------------------------------------------------------|----------------|
-| [yarn](https://yarnpkg.com/getting-started)                   | `yarn install` |
-| [npm](https://docs.npmjs.com/cli/v7/commands/npm-install)     | `npm install`  |
-| [pnpm](https://pnpm.io/installation)                          | `pnpm install` |
-| [bun](https://bun.sh/#getting-started)                        | `bun install`  |
+Projections are pulled from three libraries and listed in a single registry
+(`src/components/MapConfigurator/projections.ts`):
 
-After completing the installation, your environment is ready for Vuetify development.
+- [`d3-geo`](https://github.com/d3/d3-geo) — Mercator, Orthographic, Albers,
+  the conic family, and more
+- [`d3-geo-projection`](https://github.com/d3/d3-geo-projection) — extended
+  projections such as Cylindrical Equal-Area, Baker, Airy
+- [`d3-composite-projections`](https://github.com/rveciana/d3-composite-projections)
+  — composite projections such as Conic Conformal France
 
-## ✨ Features
+## Tech stack
 
-- 🖼️ **Optimized Front-End Stack**: Leverage the latest Vue 3 and Vuetify 3 for a modern, reactive UI development experience. [Vue 3](https://v3.vuejs.org/) | [Vuetify 3](https://vuetifyjs.com/en/)
-- 🗃️ **State Management**: Integrated with [Pinia](https://pinia.vuejs.org/), the intuitive, modular state management solution for Vue.
-- 🚦 **Routing and Layouts**: Utilizes Vue Router for SPA navigation and vite-plugin-vue-layouts for organizing Vue file layouts. [Vue Router](https://router.vuejs.org/) | [vite-plugin-vue-layouts](https://github.com/JohnCampionJr/vite-plugin-vue-layouts)
-- 💻 **Enhanced Development Experience**: Benefit from TypeScript's static type checking and the ESLint plugin suite for Vue, ensuring code quality and consistency. [TypeScript](https://www.typescriptlang.org/) | [ESLint Plugin Vue](https://eslint.vuejs.org/)
-- ⚡ **Next-Gen Tooling**: Powered by Vite, experience fast cold starts and instant HMR (Hot Module Replacement). [Vite](https://vitejs.dev/)
-- 🧩 **Automated Component Importing**: Streamline your workflow with unplugin-vue-components, automatically importing components as you use them. [unplugin-vue-components](https://github.com/antfu/unplugin-vue-components)
-- 🛠️ **Strongly-Typed Vue**: Use vue-tsc for type-checking your Vue components, and enjoy a robust development experience. [vue-tsc](https://github.com/johnsoncodehk/volar/tree/master/packages/vue-tsc)
+Vue 3 (`<script setup>`) · Vuetify 3 · TypeScript · D3 · Vite.
 
-These features are curated to provide a seamless development experience from setup to deployment, ensuring that your Vuetify application is both powerful and maintainable.
+## Getting started
 
-## 💡 Usage
-
-This section covers how to start the development server and build your project for production.
-
-### Starting the Development Server
-
-To start the development server with hot-reload, run the following command. The server will be accessible at [http://localhost:3000](http://localhost:3000):
-
-```bash
-yarn dev
-```
-
-(Repeat for npm, pnpm, and bun with respective commands.)
-
-> Add NODE_OPTIONS='--no-warnings' to suppress the JSON import warnings that happen as part of the Vuetify import mapping. If you are on Node [v21.3.0](https://nodejs.org/en/blog/release/v21.3.0) or higher, you can change this to NODE_OPTIONS='--disable-warning=5401'. If you don't mind the warning, you can remove this from your package.json dev script.
-
-### Building for Production
-
-To build your project for production, use:
+Requires Node.js and npm.
 
 ```bash
-yarn build
+npm install
+npm run dev        # dev server with hot reload at http://localhost:3000
 ```
 
-(Repeat for npm, pnpm, and bun with respective commands.)
+### Scripts
 
-Once the build process is completed, your application will be ready for deployment in a production environment.
+| Command              | Description                                     |
+| -------------------- | ----------------------------------------------- |
+| `npm run dev`        | Start the Vite dev server (port 3000)           |
+| `npm run build`      | Type-check (`vue-tsc`) and build for production |
+| `npm run preview`    | Preview the production build                    |
+| `npm run type-check` | Run the TypeScript/Vue type check only          |
 
-## 💪 Support Vuetify Development
+## Project layout
 
-This project is built with [Vuetify](https://vuetifyjs.com/en/), a UI Library with a comprehensive collection of Vue components. Vuetify is an MIT licensed Open Source project that has been made possible due to the generous contributions by our [sponsors and backers](https://vuetifyjs.com/introduction/sponsors-and-backers/). If you are interested in supporting this project, please consider:
+```
+src/
+├── App.vue                              # holds the config + limits, wires the two panels
+└── components/MapConfigurator/
+    ├── MapConfigurator.vue              # the SVG map; pan/zoom; redraws on config change
+    ├── MapSettings.vue                  # the control panel (sliders + number inputs)
+    ├── MapCode.vue                      # the live D3 code snippet
+    ├── projections.ts                   # projection registry + operation resolution
+    ├── interfaces.ts                    # config / limits types
+    └── circle-centers.ts                # centers of the distortion circles
+```
 
-- [Requesting Enterprise Support](https://support.vuetifyjs.com/)
-- [Sponsoring John on Github](https://github.com/users/johnleider/sponsorship)
-- [Sponsoring Kael on Github](https://github.com/users/kaelwd/sponsorship)
-- [Supporting the team on Open Collective](https://opencollective.com/vuetify)
-- [Becoming a sponsor on Patreon](https://www.patreon.com/vuetify)
-- [Becoming a subscriber on Tidelift](https://tidelift.com/subscription/npm/vuetify)
-- [Making a one-time donation with Paypal](https://paypal.me/vuetify)
+The map geometry (world countries) is fetched at runtime as GeoJSON, so an
+internet connection is required on load.
 
-## 📑 License
+### Adding a projection
+
+Append a descriptor to `projectionDescriptors` in `projections.ts` with the id
+(the D3 factory is resolved by convention as `geo<Id>`) and its source library
+(`d3geo`, `d3gp`, or `d3cp`). If the projection needs parameters beyond the
+standard center/scale/rotate/translate — or does *not* support some of them —
+declare that under `ops` (set an operation to `null` to disable it). The
+control panel and code snippet update automatically from this descriptor.
+
+## License
+
 [MIT](http://opensource.org/licenses/MIT)
-
-Copyright (c) 2016-present Vuetify, LLC
