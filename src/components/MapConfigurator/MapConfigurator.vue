@@ -19,6 +19,7 @@
       ></path>
     </g>
     <circle
+      v-if="projectedCenter"
       class="projection-center"
       r="4"
       :cx="projectedCenter[0]"
@@ -103,7 +104,7 @@
 
   let geojson: any;
 
-  const projectedCenter = ref<string[]>([])
+  const projectedCenter = ref<[number, number] | null>(null)
   const countries = ref<{ path: string }[]>([]);
   const circles = ref<{ path: string }[]>([]);
   const graticulePaths = ref<string>("");

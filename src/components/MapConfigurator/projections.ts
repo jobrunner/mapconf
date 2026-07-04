@@ -246,10 +246,14 @@ export const projectionDescriptors: ProjectionDescriptorInterface[] = [
     id: "Airy",
     lib: "d3gp"
   },
-  // a composite projection
+  // a composite projection; only supports scale/translate (no center/rotate)
   {
     id: "ConicConformalFrance",
-    lib: "d3gcp"
+    lib: "d3cp",
+    ops: {
+      center: null,
+      rotate: null,
+    }
   }
 ];
 
