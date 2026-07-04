@@ -129,6 +129,26 @@
     config.value = newValue;
   });
 
+  // When the projection changes, auto-fit it to the viewport. Every projection
+  // has its own scale semantics (composite projections in particular expect
+  // much larger scale values), so a single global default would leave most of
+  // them tiny or clipped. We only derive scale/translate here; the resulting
+  // config mutation drives the redraw below. Runs on change only, so the
+  // curated initial view is preserved on first load.
+  watch(() => config.projection, () => {
+    if (!geojson) { return; }
+    const projection = makeProjection(config as ConfigurationInterface);
+    const pad = 10;
+    projection.fitExtent(
+      [[pad, pad], [config.viewWidth - pad, config.viewHeight - pad]],
+      geojson,
+    );
+    config.scale = Math.round(projection.scale());
+    const [tx, ty] = projection.translate();
+    config.translateX = Math.round(tx);
+    config.translateY = Math.round(ty);
+  });
+
   watch(config, (newValue) => {
     emit('update:config', newValue)
     calcMap(newValue as ConfigurationInterface, geojson);

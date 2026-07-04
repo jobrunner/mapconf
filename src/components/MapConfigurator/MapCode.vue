@@ -1,18 +1,18 @@
 <template>
-  <pre class="d3-code" style="position: absolute; bottom: 40px; right: 0;border: 1px solid gray;padding:5px;margin:5px;border-radius: 4px;"
-  >const projection = d3.get{{ config.projection }}()
-  .scale({{ config.scale }})
-  .translate([{{ config.translateX }},{{ config.translateY }}])
-  .center([{{ config.centerLon }}, {{config.centerLat}}])
-  .rotate([{{ config.rotateLambda }}, {{ config.rotatePhi }}, {{ config.rotateGamma }}]);</pre>
+  <pre class="d3-code" style="position: absolute; bottom: 40px; right: 0;border: 1px solid gray;padding:5px;margin:5px;border-radius: 4px;">{{ code }}</pre>
 </template>
 
 <script setup lang="ts">
-  // @todo: Refactor for configured operations
-  import { reactive } from 'vue';
+  import { computed, reactive } from 'vue';
+  import { buildProjectionCode } from './projections';
+  import type { ConfigurationInterface } from './interfaces';
 
   const props = defineProps({
     config: { type: Object, required: true }
   });
   const config = reactive(props.config);
+
+  // Only the methods the selected projection supports are shown; the operation
+  // list is derived from the projection descriptor in projections.ts.
+  const code = computed(() => buildProjectionCode(config as ConfigurationInterface));
 </script>

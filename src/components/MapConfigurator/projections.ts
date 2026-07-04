@@ -93,15 +93,11 @@ export const makeProjection = (config: ConfigurationInterface) => {
     throw Error(`projection not available: ${projName} in ${libName}`);
   }
 
-  const operations = { ...standardOperations, ...projectionEntity?.ops };
   const projection = projectionLib[projName]();
 
-  for (const [operation, params] of Object.entries(operations)) {
-    // operation with explicit null as values should be omitted in the execution chain
-    if (params === null) { continue; }
-
+  for (const [operation, params] of resolveOperations(config.projection)) {
     // little bit typing...
-    const def = params?.map((item) => {
+    const def = params.map((item) => {
       const value = config[item.config];
       return value ?? item.default;
     });
@@ -122,6 +118,42 @@ const getProjectionLib = (libName: string) => {
 }
 
 export const getFieldMeta = (type: string) => paramTypes.filter((item) => item.type === type);
+
+// Resolve the effective operations for a projection: the standard operations
+// merged with the projection-specific overrides, with any explicitly disabled
+// (null) operation removed. Single source of truth for what a projection
+// actually supports.
+export const resolveOperations = (
+  projectionId: string,
+): [string, ProjectionOperationParamInterface[]][] => {
+  const entity = projectionDescriptors.find((item) => item.id === projectionId);
+  const operations = { ...standardOperations, ...entity?.ops };
+  return Object.entries(operations).filter(
+    ([, params]) => params != null,
+  ) as [string, ProjectionOperationParamInterface[]][];
+};
+
+// The set of config field names the given projection uses — drives which
+// parameter controls are enabled in the UI.
+export const getSupportedConfigKeys = (projectionId: string): Set<string> => {
+  const keys = new Set<string>();
+  for (const [, params] of resolveOperations(projectionId)) {
+    for (const param of params) { keys.add(param.config); }
+  }
+  return keys;
+};
+
+// Build the illustrative d3 code snippet, listing only the methods the selected
+// projection actually supports.
+export const buildProjectionCode = (config: ConfigurationInterface): string => {
+  const lines = [`const projection = d3.geo${config.projection}()`];
+  for (const [operation, params] of resolveOperations(config.projection)) {
+    const args = params.map((p) => config[p.config] ?? p.default);
+    const arg = params.length === 1 ? `${args[0]}` : `[${args.join(', ')}]`;
+    lines.push(`  .${operation}(${arg})`);
+  }
+  return `${lines.join('\n')};`;
+};
 
 const standardOperations: ProjectionOperationInterface = {
   center: [

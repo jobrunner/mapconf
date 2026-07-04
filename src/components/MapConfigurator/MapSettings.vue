@@ -26,6 +26,7 @@
     <v-card-text>
       <v-slider
         v-model="config.centerLon"
+        :disabled="!supported.has('centerLon')"
         :min="limits.minCenterLon"
         :max="limits.maxCenterLon"
         :step="limits.stepCenterLon"
@@ -37,6 +38,7 @@
         <template v-slot:append>
           <v-number-input
             v-model="config.centerLon"
+            :disabled="!supported.has('centerLon')"
             :min="limits.minCenterLon"
             :max="limits.maxCenterLon"
             :step="limits.stepCenterLon"
@@ -55,6 +57,7 @@
 
       <v-slider
         v-model="config.centerLat"
+        :disabled="!supported.has('centerLat')"
         :min="limits.minCenterLat"
         :max="limits.maxCenterLat"
         :step="limits.stepCenterLat"
@@ -64,6 +67,7 @@
         <template v-slot:append>
           <v-number-input
             v-model="config.centerLat"
+            :disabled="!supported.has('centerLat')"
             :min="limits.minCenterLat"
             :max="limits.maxCenterLat"
             :step="limits.stepCenterLat"
@@ -88,6 +92,7 @@
     <v-card-text>
       <v-slider
         v-model="config.parallel"
+        :disabled="!supported.has('parallel')"
         :min="-90"
         :max="90"
         :step="1"
@@ -98,6 +103,7 @@
         <template v-slot:append>
           <v-number-input
             v-model="config.parallel"
+            :disabled="!supported.has('parallel')"
             :min="-90"
             :max="90"
             :step="1"
@@ -129,6 +135,7 @@
     <v-card-text>
       <v-slider
         v-model="config.rotateLambda"
+        :disabled="!supported.has('rotateLambda')"
         :min="limits.minRotateLambda"
         :max="limits.maxRotateLambda"
         :step="limits.stepRotateLambda"
@@ -139,6 +146,7 @@
         <template v-slot:append>
           <v-number-input
             v-model="config.rotateLambda"
+            :disabled="!supported.has('rotateLambda')"
             :min="limits.minRotateLambda"
             :max="limits.maxRotateLambda"
             :step="limits.stepRotateLambda"
@@ -157,6 +165,7 @@
 
       <v-slider
         v-model="config.rotatePhi"
+        :disabled="!supported.has('rotatePhi')"
         :min="limits.minRotatePhi"
         :max="limits.maxRotatePhi"
         :step="limits.stepRotatePhi"
@@ -166,6 +175,7 @@
         <template v-slot:append>
           <v-number-input
             v-model="config.rotatePhi"
+            :disabled="!supported.has('rotatePhi')"
             :min="limits.minRotatePhi"
             :max="limits.maxRotatePhi"
             :step="limits.stepRotatePhi"
@@ -184,6 +194,7 @@
 
       <v-slider
         v-model="config.rotateGamma"
+        :disabled="!supported.has('rotateGamma')"
         :min="limits.minRotateGamma"
         :max="limits.maxRotateGamma"
         :step="limits.stepRotateGamma"
@@ -193,6 +204,7 @@
         <template v-slot:append>
           <v-number-input
             v-model="config.rotateGamma"
+            :disabled="!supported.has('rotateGamma')"
             :min="limits.minRotateGamma"
             :max="limits.maxRotateGamma"
             :step="limits.stepRotateGamma"
@@ -226,6 +238,7 @@
     <v-card-text>
       <v-slider
         v-model="config.translateX"
+        :disabled="!supported.has('translateX')"
         :min="limits.minTranslationX"
         :max="limits.maxTranslationX"
         :step="limits.stepTranslationX"
@@ -235,6 +248,7 @@
         <template v-slot:append>
           <v-number-input
             v-model="config.translateX"
+            :disabled="!supported.has('translateX')"
             :min="limits.minTranslationX"
             :max="limits.maxTranslationX"
             :step="limits.stepTranslationX"
@@ -253,6 +267,7 @@
 
       <v-slider
         v-model="config.translateY"
+        :disabled="!supported.has('translateY')"
         :min="limits.minTranslationY"
         :max="limits.maxTranslationY"
         :step="limits.stepTranslationY"
@@ -262,6 +277,7 @@
         <template v-slot:append>
           <v-number-input
             v-model="config.translateY"
+            :disabled="!supported.has('translateY')"
             :min="limits.minTranslationY"
             :max="limits.maxTranslationY"
             :step="limits.stepTranslationY"
@@ -280,6 +296,7 @@
 
       <v-slider
         v-model="config.scale"
+        :disabled="!supported.has('scale')"
         :min="limits.minScale"
         :max="limits.maxScale"
         :step="limits.stepScale"
@@ -289,6 +306,7 @@
         <template v-slot:append>
           <v-number-input
             v-model="config.scale"
+            :disabled="!supported.has('scale')"
             :min="limits.minScale"
             :max="limits.maxScale"
             :step="limits.stepScale"
@@ -372,8 +390,8 @@
 </template>
 
 <script setup lang="ts">
-  import { reactive, watch } from 'vue';
-  import { projectionDescriptors } from './projections';
+  import { computed, reactive, watch } from 'vue';
+  import { projectionDescriptors, getSupportedConfigKeys } from './projections';
   import { VNumberInput } from 'vuetify/labs/VNumberInput'
   import type { ConfigurationLimitsInterface } from './interfaces';
 
@@ -388,6 +406,10 @@
 
   const config = reactive(props.config);
   const limits: ConfigurationLimitsInterface = reactive(props.limits as ConfigurationLimitsInterface);
+
+  // Config fields the currently selected projection supports; controls for
+  // unsupported parameters are disabled.
+  const supported = computed(() => getSupportedConfigKeys(config.projection));
 
   watch(() => props.config, (newValue) => {
     config.value = newValue;
