@@ -1,5 +1,5 @@
 <template>
-  <pre class="d3-code" style="position: absolute; bottom: 40px; right: 0;border: 1px solid gray;padding:5px;margin:5px;border-radius: 4px;">{{ code }}</pre>
+  <pre class="d3-code" style="border: 1px solid gray;padding:5px;margin:5px;border-radius: 4px;background:#fff;color:#222;">{{ code }}</pre>
 </template>
 
 <script setup lang="ts">

@@ -1,59 +1,96 @@
 <template>
-  <svg
-    :width="config.viewWidth"
-    :height="config.viewHeight"
-    @wheel.prevent="onWheel"
-    @mousedown="onMouseDown"
-    @mousemove="onMouseMove"
-    @mouseup="onMouseUp"
-  >
-    <g class="map">
-      <path v-for="(country, index) in countries"
-        :key="index"
-        :d="country.path"
-      />
-    </g>
-    <g class="circles">
-      <path v-for="(circle) in circles"
-        :d="circle?.path"
-      ></path>
-    </g>
-    <circle
-      v-if="projectedCenter"
-      class="projection-center"
-      r="4"
-      :cx="projectedCenter[0]"
-      :cy="projectedCenter[1]"
+  <div class="map-configurator">
+    <svg
+      :width="config.viewWidth"
+      :height="config.viewHeight"
+      @wheel.prevent="onWheel"
+      @mousedown="onMouseDown"
+      @mousemove="onMouseMove"
+      @mouseup="onMouseUp"
     >
-    </circle>
-    <g>
-      <path :d="graticuleOutlinePath" fill="none" stroke="red" stroke-width="2" class="graticule-outline"/>
-      <path :d="graticulePaths" fill="none" stroke="#ccc" stroke-width="0.5"  class="graticules"/>
-    </g>
-  </svg>
-  <map-code
-    :config="config"
-  ></map-code>
+      <g class="map">
+        <path v-for="country in countries"
+          :key="country.id ?? country.name"
+          :d="country.path"
+          :class="{ selected: country.id === selectedKey || country.name === selectedKey }"
+          @click="onCountryClick(country)"
+        >
+          <title>{{ country.name }}</title>
+        </path>
+      </g>
+      <path class="borders" :d="bordersPath" />
+      <g class="circles">
+        <path v-for="(circle) in circles"
+          :d="circle?.path"
+        ></path>
+      </g>
+      <g>
+        <path :d="graticuleOutlinePath" fill="none" stroke-width="1.5" class="graticule-outline"/>
+        <path :d="graticulePaths" fill="none" stroke-width="0.5" class="graticules"/>
+      </g>
+      <circle
+        v-if="projectedCenter"
+        class="projection-center"
+        r="4"
+        :cx="projectedCenter[0]"
+        :cy="projectedCenter[1]"
+      >
+      </circle>
+      <g class="cities" v-if="showCities">
+        <template v-for="(city, index) in cityPoints" :key="index">
+          <circle v-if="city.xy"
+            class="city"
+            r="3"
+            :cx="city.xy[0]"
+            :cy="city.xy[1]"
+            @click.stop="onCityClick(city)"
+          >
+            <title>{{ city.name }}, {{ city.country }}</title>
+          </circle>
+        </template>
+      </g>
+    </svg>
+
+    <div class="overlay-br">
+      <div v-if="selectedCountry" class="info-box">
+        <div class="info-row"><span class="info-label">Land:</span> {{ selectedCountry }}</div>
+        <div v-if="selectedCity" class="info-row"><span class="info-label">Stadt:</span> {{ selectedCity }}</div>
+      </div>
+      <map-code :config="config"></map-code>
+    </div>
+  </div>
 </template>
 
 <script setup lang="ts">
   import { ref, reactive, watch, onMounted } from 'vue';
   import * as d3 from 'd3';
   import type { GeoPath } from "d3";
-  import type { GeoJSON, FeatureCollection } from "geojson";
+  import type { Feature, FeatureCollection } from "geojson";
+  import { feature, mesh } from 'topojson-client';
+  import type { Topology } from 'topojson-specification';
+  import rawTopology from 'world-atlas/countries-110m.json';
   import MapCode from '@/components/MapConfigurator/MapCode.vue';
   import { makeProjection }  from './projections';
   import { circleCenters } from './circle-centers';
+  import { cities, type City } from './cities';
   import type { ConfigurationInterface, ConfigurationLimitsInterface } from './interfaces';
 
-  const loadGeoJson = async () => {
-    const geojson = await d3.json('https://raw.githubusercontent.com/holtzy/D3-graph-gallery/master/DATA/world.geojson');
-    return geojson;
-  }
+  // Country geometry comes from world-atlas (Natural Earth, public domain) as
+  // TopoJSON. feature() decodes the filled country polygons; mesh() derives the
+  // interior borders as a single shared-arc path so each border is drawn once.
+  const topology = rawTopology as unknown as Topology;
+  // topojson-client and topojson-specification disagree on the generic
+  // properties parameter; cast at this decode boundary rather than fight it.
+  const countriesObj = topology.objects.countries as never;
+  const world = feature(topology as never, countriesObj) as unknown as FeatureCollection;
+  const bordersGeo = mesh(topology as never, countriesObj, (a, b) => a !== b);
+
+  type CountryShape = { path: string; name: string; id: string | number | undefined };
+  type CityPoint = { name: string; country: string; xy: [number, number] | null };
 
   // refactor this after it's clear how to build the calculation with
   // more or less specific projection parameters, method calls, defaults and limits
-  const calcMap = async (config: ConfigurationInterface, geojson: GeoJSON): Promise<void> => {
+  const calcMap = (config: ConfigurationInterface): void => {
     const projection = makeProjection(config);
 
     // geoPath() ist eine generator function die geographische Koordinaten (lat, lon, wie sie z.B. in  GeoJSON
@@ -64,11 +101,16 @@
       .geoPath()
       .projection(projection);
 
-    // Jedes feature property im GeoJSON object wird in einen SVG-Pfad
-    // der auf die Pixel-Ebene umgewandelt
-    countries.value = (geojson as FeatureCollection).features.map((feature) => ({
-      path: geoPathGenerator(feature) || '',
+    // Jedes feature im FeatureCollection wird in einen SVG-Pfad umgewandelt.
+    // Name und id werden für Klick-Interaktion und Highlight mitgeführt.
+    countries.value = world.features.map((feat: Feature) => ({
+      path: geoPathGenerator(feat) || '',
+      name: (feat.properties as { name?: string })?.name ?? '',
+      id: feat.id,
     }));
+
+    // Binnengrenzen als eine gemeinsame Linie (shared arcs) -> jede Grenze nur einmal.
+    bordersPath.value = geoPathGenerator(bordersGeo as unknown as d3.GeoPermissibleObjects) || '';
 
     // d3.geoCircle() ist eine generator Funktion, die die sphärischen Koordinaten
     // von Kreisen erzeugt. Hier mit einem Radius 10° und einer Auflösung von 1,
@@ -100,15 +142,53 @@
     // zentralen Meridian und Breitenkreises. Die Umrechnung von Koordinaten in die Bildebene
     // geschieht hier direkt mit der definierten Projektionsvorschrift.
     projectedCenter.value = projection([config.centerLon, config.centerLat]);
+
+    // Städte auf dieselbe Projektion abbilden. null = außerhalb des Clip-Bereichs
+    // (z.B. bei Composite-Projektionen) und wird beim Rendern ausgeblendet.
+    cityPoints.value = cities.map((city: City) => ({
+      name: city.name,
+      country: city.country,
+      xy: projection(city.coords) as [number, number] | null,
+    }));
   }
 
-  let geojson: any;
-
   const projectedCenter = ref<[number, number] | null>(null)
-  const countries = ref<{ path: string }[]>([]);
+  const countries = ref<CountryShape[]>([]);
+  const bordersPath = ref<string>("");
   const circles = ref<{ path: string }[]>([]);
   const graticulePaths = ref<string>("");
   const graticuleOutlinePath = ref<string>("");
+  const cityPoints = ref<CityPoint[]>([]);
+
+  // Selection state, surfaced in the info box above the code panel.
+  const selectedCountry = ref<string | null>(null);
+  const selectedCity = ref<string | null>(null);
+  const selectedKey = ref<string | number | null>(null);
+
+  // Cities are an optional layer. There is no UI for it yet — toggle it from the
+  // browser console via `mapconf.showCities = true` (reactive getter/setter).
+  const showCities = ref(false);
+  if (typeof window !== 'undefined') {
+    const w = window as unknown as { mapconf?: Record<string, unknown> };
+    w.mapconf = w.mapconf ?? {};
+    Object.defineProperty(w.mapconf, 'showCities', {
+      configurable: true,
+      get: () => showCities.value,
+      set: (value: unknown) => { showCities.value = Boolean(value); },
+    });
+  }
+
+  const onCountryClick = (country: CountryShape) => {
+    selectedKey.value = country.id ?? country.name;
+    selectedCountry.value = country.name;
+    selectedCity.value = null;
+  };
+
+  const onCityClick = (city: CityPoint) => {
+    selectedCity.value = city.name;
+    selectedCountry.value = city.country;
+    selectedKey.value = city.country;
+  };
 
   const props = defineProps({
     config: {type: Object, required: true},
@@ -125,7 +205,6 @@
   });
 
   watch(() => props.config, (newValue) => {
-    console.log('config changed. Must redraw map');
     config.value = newValue;
   });
 
@@ -136,12 +215,11 @@
   // config mutation drives the redraw below. Runs on change only, so the
   // curated initial view is preserved on first load.
   watch(() => config.projection, () => {
-    if (!geojson) { return; }
     const projection = makeProjection(config as ConfigurationInterface);
     const pad = 10;
     projection.fitExtent(
       [[pad, pad], [config.viewWidth - pad, config.viewHeight - pad]],
-      geojson,
+      world,
     );
     config.scale = Math.round(projection.scale());
     const [tx, ty] = projection.translate();
@@ -151,13 +229,13 @@
 
   watch(config, (newValue) => {
     emit('update:config', newValue)
-    calcMap(newValue as ConfigurationInterface, geojson);
+    calcMap(newValue as ConfigurationInterface);
   });
 
   // zoom
   const onWheel = (event: WheelEvent) => {
     const delta = event.deltaY > 0 ? 0.9 : 1.1;
-    if (Math.ceil(config.scale * delta) < limits.minScale || config.scale * delta > limits.maxScale) {
+    if (Math.ceil(config.scale * delta) < limits.minScale || config.scale * delta > limits.maxScale) {
       return;
     }
     config.scale = Math.ceil(config.scale * delta);
@@ -195,44 +273,96 @@
   };
   // }}}
 
-  onMounted(async () => {
-    geojson = await loadGeoJson()
-    await calcMap(config as ConfigurationInterface, geojson);
+  onMounted(() => {
+    console.info('[mapconf] Städte einblenden: mapconf.showCities = true (bzw. false zum Ausblenden)');
+    calcMap(config as ConfigurationInterface);
   });
 </script>
 
 <style lang="css" scoped>
+  .map-configurator {
+    position: relative;
+  }
+
   svg {
     border: 1px dashed #666;
     border-radius: 0.5em;
   }
-  .container-map {
-    border: 1px dashed #666;
-    border-radius: 0.5em;
-    width: 500px;
-    height: 500px;
+
+  /* Overlay stacked in the bottom-right corner: info box above the code box.
+     The container ignores pointer events so it never blocks map interaction;
+     its children re-enable them. */
+  .overlay-br {
+    position: absolute;
+    bottom: 40px;
+    right: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 8px;
+    pointer-events: none;
+  }
+  .overlay-br > * {
+    pointer-events: auto;
+  }
+  .info-box {
+    background: #fff;
+    color: #222;
+    border: 1px solid gray;
+    border-radius: 4px;
+    padding: 5px 8px;
+    margin: 0 5px;
+    font-size: 0.85rem;
+  }
+  .info-label {
+    font-weight: bold;
   }
 
+  /* Colour palette: Okabe–Ito, chosen to stay distinguishable under red-green
+     colour-vision deficiency (no red/green pairing). */
   .map path {
-    fill: #87B687;
-    stroke: #ccc;
-    stroke-width: 0.5;
-    fill-opacity: 0.75;
+    fill: #56B4E9;          /* sky blue land */
+    fill-opacity: 0.5;
+    stroke: none;
+    cursor: pointer;
+  }
+  .map path:hover {
+    fill-opacity: 0.7;
+  }
+  .map path.selected {
+    fill: #F0E442;          /* yellow highlight */
+    fill-opacity: 0.6;
+    stroke: #000;
+    stroke-width: 1.5;
+  }
+
+  .borders {
+    fill: none;
+    stroke: #0072B2;        /* blue country borders, drawn once via mesh */
+    stroke-width: 0.6;
+    pointer-events: none;
   }
 
   .projection-center {
-    fill: red;
+    fill: #D55E00;          /* vermillion */
   }
 
-  .graticule path {
-    fill: none;
-    /* stroke: #eee; */
-    stroke: red;
-    stroke-width: 2px;
+  .graticule-outline {
+    stroke: #E69F00;        /* orange sphere outline */
+  }
+  .graticules {
+    stroke: #999;           /* neutral grid */
   }
 
   .circles path {
     fill: none;
-    stroke: #aaa;
+    stroke: #666;
+  }
+
+  .cities .city {
+    fill: #CC79A7;          /* reddish purple */
+    stroke: #000;
+    stroke-width: 0.5;
+    cursor: pointer;
   }
 </style>
