@@ -280,10 +280,6 @@
 </script>
 
 <style lang="css" scoped>
-  .map-configurator {
-    position: relative;
-  }
-
   svg {
     border: 1px dashed #666;
     border-radius: 0.5em;
