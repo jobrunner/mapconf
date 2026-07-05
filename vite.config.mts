@@ -64,6 +64,9 @@ export default defineConfig({
       output: {
         manualChunks: {
           d3: ['d3-composite-projections', 'd3-geo-projection'],
+          // World geometry (~230 kB gzip) split into its own long-lived,
+          // cacheable chunk so it is not re-downloaded on app code changes.
+          'world-atlas': ['world-atlas/countries-50m.json'],
         },
       },
     },

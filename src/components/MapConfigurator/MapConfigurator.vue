@@ -68,7 +68,7 @@
   import type { Feature, FeatureCollection } from "geojson";
   import { feature, mesh } from 'topojson-client';
   import type { Topology } from 'topojson-specification';
-  import rawTopology from 'world-atlas/countries-110m.json';
+  import rawTopology from 'world-atlas/countries-50m.json';
   import MapCode from '@/components/MapConfigurator/MapCode.vue';
   import { makeProjection }  from './projections';
   import { circleCenters } from './circle-centers';
