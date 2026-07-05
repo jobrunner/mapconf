@@ -21,7 +21,7 @@
             ></map-configurator>
           </div>
           <v-footer app>
-            <p>Footer-Inhalt</p>
+            <p>&copy; {{ year }} {{ author }}</p>
           </v-footer>
         </div>
       </div>
@@ -30,10 +30,14 @@
 </template>
 
 <script setup lang="ts">
-  import { ref, reactive } from 'vue';
+  import { ref } from 'vue';
   import MapSettings from "@/components/MapConfigurator/MapSettings.vue"
   import MapConfigurator from '@/components/MapConfigurator/MapConfigurator.vue';
   import type { ConfigurationInterface, ConfigurationLimitsInterface } from '@/components/MapConfigurator/interfaces';
+
+  // Copyright: owner injected from package.json at build time (see vite.config.mts).
+  const author = __APP_AUTHOR__;
+  const year = new Date().getFullYear();
 
   // @todo ConfigurationInterface and ConfigurationLimitsInterface must be refactored along the
   //       requirements of the d3 geo projection and d3 geo composition projections packages...
