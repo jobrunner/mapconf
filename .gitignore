@@ -2,6 +2,9 @@
 node_modules
 /dist
 
+# Playwright MCP session artifacts (snapshots, console logs)
+.playwright-mcp
+
 # local env files
 .env.local
 .env.*.local
