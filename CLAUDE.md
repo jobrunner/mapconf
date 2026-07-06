@@ -81,8 +81,12 @@ change only; the curated initial view is preserved on first load.
 ### Map rendering & data (`MapConfigurator.vue`)
 
 Country geometry is bundled from **`world-atlas`** (Natural Earth, public domain) as TopoJSON
-and decoded with **`topojson-client`** — no runtime network fetch (works offline). `calcMap()`
-uses `d3.geoPath()` to render, as separate SVG layers:
+and decoded with **`topojson-client`** — no runtime network fetch (works offline). It uses the
+**50m** resolution (`countries-50m.json`), not 110m: at 1:110m Natural Earth drops France's
+small overseas islands, leaving the `ConicConformalFrance` inset boxes empty — so don't
+downgrade to 110m for size reasons. The geometry is split into its own cacheable chunk via
+`manualChunks` in `vite.config.mts`. `calcMap()` uses `d3.geoPath()` to render, as separate
+SVG layers:
 - **country fills** — `feature(topo, objects.countries)`, one interactive `<path>` per country
   (carries `name`/`id` for click + highlight);
 - **borders** — `mesh(...)` as one shared-arc path, drawn once, `pointer-events: none`;
